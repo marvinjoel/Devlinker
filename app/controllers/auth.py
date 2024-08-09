@@ -1,12 +1,15 @@
 import os
+import traceback
+
 import bcrypt
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from controllers.exceptions import BadRequestException
-from controllers.schemas.user import UserInput
+from controllers.exceptions import BadRequestException, UnAuthorizedException
+from controllers.schemas.user import UserInput, LoginInput
 from models.db.db_setup import db_session
+from models.token import Token
 from models.user import User
 
 authRouter = APIRouter(
@@ -28,3 +31,32 @@ async def create_user(request: UserInput, db: Session = Depends(db_session)) -> 
     db.commit()
     db.refresh(item)
     return item
+
+
+@authRouter.post("/auth/login")
+async def login(user_input: LoginInput):
+    try:
+        with db_session() as db:
+            user_name = user_input.user
+            user_pwd = user_input.pwd.encode('utf-8')
+
+            user: User = db.query(User).filter(User.username == user_name).first()
+
+            if bcrypt.checkpw(user_pwd, user.hashed_password.encode('utf-8')):
+                payload = {
+                    'user_id': user.id,
+                    'username': user.username,
+                    'is_recruiter': user.is_recruiter,
+                }
+                token = Token.encode(payload=payload)
+                return {
+                    'user': user_name,
+                    'token': f'{token}',
+                    'type': 'Bearer'
+                }
+            else:
+                raise UnAuthorizedException()
+    except Exception as e:
+        tb = traceback.format_exc()
+        print(tb)
+        raise UnAuthorizedException()
