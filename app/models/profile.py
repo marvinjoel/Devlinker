@@ -1,5 +1,5 @@
 from sqlalchemy import Integer, String, ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, Session
 from models.db.db_setup import Base
 
 
@@ -16,3 +16,8 @@ class Profile(Base):
     project_links: Mapped[str] = mapped_column(String)
 
     owner: Mapped["User"] = relationship("User", back_populates="profile")
+
+    @classmethod
+    def get_profile(cls, session: Session, user_id):
+
+        return session.query(cls).filter(cls.user_id == user_id).first() or None

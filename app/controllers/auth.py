@@ -3,7 +3,7 @@ import traceback
 
 import bcrypt
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
 from controllers.exceptions import BadRequestException, UnAuthorizedException
